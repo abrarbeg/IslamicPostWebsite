@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Post = require('../models/Post'); // Ensure the path is correct
+const Post = require('./models/post'); // If the file is actually lowercase
 
 module.exports = function (Post) {
     router.get('/', async (req, res) => {

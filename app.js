@@ -28,7 +28,7 @@ app.use(
 
 // MongoDB Connection
 mongoose
-  .connect("mongodb+srv://abrarbeg250:<cylQDE9vIkBLt9gF>@cluster0.84aph.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
+  .connect("mongodb+srv://abrarbeg250:<on72tGSmL2ityIwf>@cluster0.84aph.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })

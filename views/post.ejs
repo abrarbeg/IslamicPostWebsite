@@ -20,7 +20,7 @@
             <div class="card-body">
                 <h1 class="card-title"><%= post.title %></h1>
                 <p><strong>Category:</strong> <%= post.category %></p>
-                <p class="card-text"><%= post.content %></p>
+                <p class="card-text"><%- post.content.replace(/\n/g, '<br>') %></p>
                 <a href="/" class="btn btn-secondary">Back to Home</a>
             </div>
         </div>

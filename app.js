@@ -5,11 +5,17 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
-const Post = require('./models/post'); // If the file is actually lowercase
+const Post = require("./models/post");
 const uri = "mongodb+srv://abrarbeg250:9TtXWz1KNZFQkMi7@cluster0.84aph.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const app = express();
 const PORT = 3000;
+
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, "public/uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -37,7 +43,7 @@ mongoose
 
 // Multer Setup for Image Upload
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "public/uploads/"),
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
 const upload = multer({ storage });
@@ -48,7 +54,7 @@ const authenticateAdmin = (req, res, next) => {
   res.redirect("/admin/login");
 };
 
-// Home Route
+// Routes
 app.get("/", async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
@@ -59,7 +65,6 @@ app.get("/", async (req, res) => {
   }
 });
 
-// Detailed Post Page
 app.get("/post/:id", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -71,11 +76,7 @@ app.get("/post/:id", async (req, res) => {
   }
 });
 
-// Privacy Policy & Terms and Conditions
-app.get("/privacy-policy", (req, res) => res.render("privacy-policy"));
-app.get("/terms-conditions", (req, res) => res.render("terms-conditions"));
-
-// Admin Login
+// Admin Routes
 app.get("/admin/login", (req, res) => res.render("admin-login", { error: null }));
 
 app.post("/admin/login", (req, res) => {
@@ -88,7 +89,6 @@ app.post("/admin/login", (req, res) => {
   }
 });
 
-// Admin Panel
 app.get("/admin/panel", authenticateAdmin, async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
@@ -107,9 +107,8 @@ app.post("/admin/add-post", authenticateAdmin, upload.single("image"), async (re
       title,
       category,
       content,
-      image: req.file ? "/uploads/" + req.file.filename : null,
+      image: req.file ? `/uploads/${req.file.filename}` : null,
     });
-
     await newPost.save();
     res.redirect("/admin/panel");
   } catch (error) {
@@ -139,11 +138,16 @@ app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (
     const existingPost = await Post.findById(postId);
     if (!existingPost) return res.status(404).send("Post not found.");
 
+    if (req.file && existingPost.image) {
+      const oldImagePath = path.join(__dirname, "public", existingPost.image);
+      if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+    }
+
     const updatedData = {
       title,
       category,
       content,
-      image: req.file ? "/uploads/" + req.file.filename : existingPost.image,
+      image: req.file ? `/uploads/${req.file.filename}` : existingPost.image,
     };
 
     await Post.findByIdAndUpdate(postId, updatedData, { new: true });
@@ -159,14 +163,11 @@ app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
   try {
     const postId = req.params.id;
     const deletedPost = await Post.findByIdAndDelete(postId);
-
     if (!deletedPost) return res.status(404).send("Post not found.");
-
     if (deletedPost.image) {
       const imagePath = path.join(__dirname, "public", deletedPost.image);
       if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     }
-
     res.redirect("/admin/panel");
   } catch (error) {
     console.error("Error deleting post:", error);
@@ -174,7 +175,7 @@ app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
   }
 });
 
-// Admin Logout
+// Logout
 app.get("/admin/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) console.error(err);

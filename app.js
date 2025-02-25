@@ -6,6 +6,7 @@ const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 const Post = require("./models/post");
+
 const uri = "mongodb+srv://abrarbeg250:9TtXWz1KNZFQkMi7@cluster0.84aph.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const app = express();
@@ -129,7 +130,7 @@ app.get("/admin/edit/:id", authenticateAdmin, async (req, res) => {
   }
 });
 
-// Update Post
+// Update Post (Does NOT delete existing image)
 app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (req, res) => {
   try {
     const { title, category, content } = req.body;
@@ -138,16 +139,11 @@ app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (
     const existingPost = await Post.findById(postId);
     if (!existingPost) return res.status(404).send("Post not found.");
 
-    if (req.file && existingPost.image) {
-      const oldImagePath = path.join(__dirname, "public", existingPost.image);
-      if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
-    }
-
     const updatedData = {
       title,
       category,
       content,
-      image: req.file ? `/uploads/${req.file.filename}` : existingPost.image,
+      image: req.file ? `/uploads/${req.file.filename}` : existingPost.image, // Keep old image if no new image is uploaded
     };
 
     await Post.findByIdAndUpdate(postId, updatedData, { new: true });
@@ -158,16 +154,20 @@ app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (
   }
 });
 
-// Delete Post
+// Delete Post (Deletes image only when manually clicking delete)
 app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
   try {
     const postId = req.params.id;
     const deletedPost = await Post.findByIdAndDelete(postId);
+    
     if (!deletedPost) return res.status(404).send("Post not found.");
+    
+    // Delete the associated image from the server
     if (deletedPost.image) {
       const imagePath = path.join(__dirname, "public", deletedPost.image);
       if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     }
+    
     res.redirect("/admin/panel");
   } catch (error) {
     console.error("Error deleting post:", error);

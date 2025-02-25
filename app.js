@@ -6,7 +6,7 @@ const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 const Post = require('./models/post'); // If the file is actually lowercase
-
+const uri = "mongodb+srv://abrarbeg250:<on72tGSmL2ityIwf>@cluster0.84aph.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const app = express();
 const PORT = 3000;

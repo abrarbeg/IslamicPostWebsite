@@ -162,7 +162,7 @@ app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
     
     if (!deletedPost) return res.status(404).send("Post not found.");
     
-    // Delete the associated image from the server
+    // Delete the associated image from the server only when the post is deleted manually
     if (deletedPost.image) {
       const imagePath = path.join(__dirname, "public", deletedPost.image);
       if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);

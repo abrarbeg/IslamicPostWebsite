@@ -130,7 +130,7 @@ app.get("/admin/edit/:id", authenticateAdmin, async (req, res) => {
   }
 });
 
-// Update Post (Does NOT delete existing image)
+// Update Post (Preserves existing image if no new image is uploaded)
 app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (req, res) => {
   try {
     const { title, category, content } = req.body;
@@ -143,7 +143,7 @@ app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (
       title,
       category,
       content,
-      image: req.file ? `/uploads/${req.file.filename}` : existingPost.image, // Keep old image if no new image is uploaded
+      image: req.file ? `/uploads/${req.file.filename}` : existingPost.image, // Preserve existing image if no new image is uploaded
     };
 
     await Post.findByIdAndUpdate(postId, updatedData, { new: true });
@@ -159,15 +159,15 @@ app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
   try {
     const postId = req.params.id;
     const deletedPost = await Post.findByIdAndDelete(postId);
-    
+
     if (!deletedPost) return res.status(404).send("Post not found.");
-    
+
     // Delete the associated image from the server only when the post is deleted manually
     if (deletedPost.image) {
       const imagePath = path.join(__dirname, "public", deletedPost.image);
       if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     }
-    
+
     res.redirect("/admin/panel");
   } catch (error) {
     console.error("Error deleting post:", error);

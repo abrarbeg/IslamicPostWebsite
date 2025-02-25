@@ -28,7 +28,7 @@ app.use(
 
 // MongoDB Connection
 mongoose
-  .connect("mongodb://127.0.0.1:27017/islamicPosts", {
+  .connect("mongodb+srv://abrarbeg250:<db_password>@cluster0.84aph.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })

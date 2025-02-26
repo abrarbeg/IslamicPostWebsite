@@ -189,28 +189,32 @@ app.get("/admin/logout", (req, res) => {
   });
 });
 
-// 📌 Sitemap Route
+// Sitemap Route
 app.get("/sitemap.xml", async (req, res) => {
   try {
-    const posts = await Post.find();
-    const links = posts.map(post => ({
-      url: `/post/${post._id}`,
-      changefreq: "weekly",
-      priority: 0.8
-    }));
+    const posts = await Post.find().sort({ createdAt: -1 });
 
-    const stream = new SitemapStream({ hostname: "https://islamicpostwebsite.onrender.com" });
-    links.forEach(link => stream.write(link));
-    stream.end();
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
-    const sitemap = await streamToPromise(stream);
+    posts.forEach((post) => {
+      xml += `  <url>\n`;
+      xml += `    <loc>https://islamicpostwebsite.onrender.com/post/${post._id}</loc>\n`;
+      xml += `    <changefreq>weekly</changefreq>\n`;
+      xml += `    <priority>0.8</priority>\n`;
+      xml += `  </url>\n`;
+    });
+
+    xml += `</urlset>`;
+
     res.header("Content-Type", "application/xml");
-    res.send(sitemap.toString());
+    res.send(xml);
   } catch (error) {
     console.error("Error generating sitemap:", error);
-    res.status(500).send("Could not generate sitemap.");
+    res.status(500).send("Internal Server Error");
   }
 });
+
 
 // Start Server
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

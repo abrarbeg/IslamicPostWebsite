@@ -189,6 +189,14 @@ app.get("/admin/logout", (req, res) => {
   });
 });
 
+app.get("/privacy-policy", (req, res) => {
+  res.render("privacy-policy");
+});
+
+app.get("/terms-conditions", (req, res) => {
+  res.render("terms-conditions");
+});
+
 // Sitemap Route
 app.get("/sitemap.xml", async (req, res) => {
   try {
@@ -215,6 +223,14 @@ app.get("/sitemap.xml", async (req, res) => {
   }
 });
 
+// Serve robots.txt
+app.use('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send(`User-agent: *\nDisallow:\nSitemap: https://islamicpostwebsite.onrender.com/sitemap.xml`);
+});
+
+// Serve static files (if needed)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Start Server
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

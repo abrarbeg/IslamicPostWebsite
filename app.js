@@ -7,6 +7,7 @@ const multer = require("multer");
 const Post = require("./models/post");
 const { v2: cloudinary } = require("cloudinary");
 const streamifier = require("streamifier");
+const { SitemapStream, streamToPromise } = require("sitemap");
 
 require("dotenv").config();
 
@@ -186,6 +187,29 @@ app.get("/admin/logout", (req, res) => {
     if (err) console.error(err);
     res.redirect("/admin/login");
   });
+});
+
+// 📌 Sitemap Route
+app.get("/sitemap.xml", async (req, res) => {
+  try {
+    const posts = await Post.find();
+    const links = posts.map(post => ({
+      url: `/post/${post._id}`,
+      changefreq: "weekly",
+      priority: 0.8
+    }));
+
+    const stream = new SitemapStream({ hostname: "https://islamicpostwebsite.onrender.com" });
+    links.forEach(link => stream.write(link));
+    stream.end();
+
+    const sitemap = await streamToPromise(stream);
+    res.header("Content-Type", "application/xml");
+    res.send(sitemap.toString());
+  } catch (error) {
+    console.error("Error generating sitemap:", error);
+    res.status(500).send("Could not generate sitemap.");
+  }
 });
 
 // Start Server

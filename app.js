@@ -8,8 +8,7 @@ const Post = require("./models/post");
 const { v2: cloudinary } = require("cloudinary");
 const streamifier = require("streamifier");
 
-require("dotenv").config(); // ✅ Correct way to load environment variables
-
+require("dotenv").config();
 
 const uri = process.env.MONGODB_URI;
 const app = express();
@@ -110,6 +109,40 @@ app.post("/admin/add-post", authenticateAdmin, upload.single("image"), async (re
   } catch (error) {
     console.error("Error adding post:", error);
     res.status(500).send("Error adding post.");
+  }
+});
+
+// Edit Post (Render Edit Page)
+app.get("/admin/edit/:id", authenticateAdmin, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).send("Post not found.");
+
+    res.render("edit-post", { post });
+  } catch (error) {
+    console.error("Error loading edit page:", error);
+    res.status(500).send("Error loading edit page.");
+  }
+});
+
+// Update Post
+app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (req, res) => {
+  try {
+    const { title, category, content } = req.body;
+    let updateData = { title, category, content };
+
+    if (req.file) {
+      const imageUrl = await uploadToCloudinary(req.file.buffer);
+      updateData.image = imageUrl;
+    }
+
+    const updatedPost = await Post.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+    if (!updatedPost) return res.status(404).send("Post not found.");
+    res.redirect("/admin/panel");
+  } catch (error) {
+    console.error("Error updating post:", error);
+    res.status(500).send("Error updating post.");
   }
 });
 

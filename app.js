@@ -8,7 +8,8 @@ const Post = require("./models/post");
 const { v2: cloudinary } = require("cloudinary");
 const streamifier = require("streamifier");
 
-env.config(); // Load environment variables
+require("dotenv").config(); // ✅ Correct way to load environment variables
+
 
 const uri = process.env.MONGODB_URI;
 const app = express();

@@ -1,22 +1,31 @@
+require("dotenv").config(); // Load environment variables
+
 const express = require("express");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const bodyParser = require("body-parser");
 const path = require("path");
 const multer = require("multer");
-const fs = require("fs");
 const Post = require("./models/post");
-
-const uri = "mongodb+srv://abrarbeg250:9TtXWz1KNZFQkMi7@cluster0.84aph.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const { v2: cloudinary } = require("cloudinary");
+const streamifier = require("streamifier");
 
 const app = express();
 const PORT = 3000;
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, "public/uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Cloudinary Configuration
+cloudinary.config({ 
+    cloud_name: process.env.dcklo39gw, 
+    api_key: process.env.545544521589563, 
+    api_secret: process.env.lfiVinmuTDQBZHR7c0-k8Vdxy34 
+});
+
+// MongoDB Connection
+const uri = process.env.MONGODB_URI;
+mongoose
+  .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -24,7 +33,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Session setup
+// Session Setup
 app.use(
   session({
     secret: "your_secret_key",
@@ -33,26 +42,25 @@ app.use(
   })
 );
 
-// MongoDB Connection
-mongoose
-  .connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
-
-// Multer Setup for Image Upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
-});
+// Multer Setup for Cloudinary Upload
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Middleware to check if user is logged in
+// Middleware to Check if User is Logged In
 const authenticateAdmin = (req, res, next) => {
   if (req.session.authenticated) return next();
   res.redirect("/admin/login");
+};
+
+// Upload Image to Cloudinary
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    let stream = cloudinary.uploader.upload_stream({ folder: "posts" }, (error, result) => {
+      if (error) return reject(error);
+      resolve(result.secure_url);
+    });
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
 };
 
 // Routes
@@ -61,19 +69,8 @@ app.get("/", async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.render("index", { posts });
   } catch (error) {
-    console.error("Error fetching posts:", error);
+    console.error("❌ Error fetching posts:", error);
     res.status(500).send("Could not load posts.");
-  }
-});
-
-app.get("/post/:id", async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).send("Post not found");
-    res.render("post", { post });
-  } catch (error) {
-    console.error("❌ Error fetching post:", error);
-    res.status(500).send("Error loading post.");
   }
 });
 
@@ -95,7 +92,7 @@ app.get("/admin/panel", authenticateAdmin, async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.render("admin-panel", { posts });
   } catch (error) {
-    console.error("Error loading admin panel:", error);
+    console.error("❌ Error loading admin panel:", error);
     res.status(500).send("Error loading admin panel.");
   }
 });
@@ -104,16 +101,13 @@ app.get("/admin/panel", authenticateAdmin, async (req, res) => {
 app.post("/admin/add-post", authenticateAdmin, upload.single("image"), async (req, res) => {
   try {
     const { title, category, content } = req.body;
-    const newPost = new Post({
-      title,
-      category,
-      content,
-      image: req.file ? `/uploads/${req.file.filename}` : null,
-    });
+    const imageUrl = req.file ? await uploadToCloudinary(req.file.buffer) : null;
+    
+    const newPost = new Post({ title, category, content, image: imageUrl });
     await newPost.save();
     res.redirect("/admin/panel");
   } catch (error) {
-    console.error("Error adding post:", error);
+    console.error("❌ Error adding post:", error);
     res.status(500).send("Error adding post.");
   }
 });
@@ -125,7 +119,7 @@ app.get("/admin/edit/:id", authenticateAdmin, async (req, res) => {
     if (!post) return res.status(404).send("Post not found");
     res.render("edit", { post });
   } catch (error) {
-    console.error("Error fetching post for edit:", error);
+    console.error("❌ Error fetching post for edit:", error);
     res.status(500).send("Error loading edit page.");
   }
 });
@@ -143,34 +137,27 @@ app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (
       title,
       category,
       content,
-      image: req.file ? `/uploads/${req.file.filename}` : existingPost.image, // Preserve existing image if no new image is uploaded
+      image: req.file ? await uploadToCloudinary(req.file.buffer) : existingPost.image, // Preserve existing image if no new image is uploaded
     };
 
     await Post.findByIdAndUpdate(postId, updatedData, { new: true });
     res.redirect("/admin/panel");
   } catch (error) {
-    console.error("Error updating post:", error);
+    console.error("❌ Error updating post:", error);
     res.status(500).send("Error updating post.");
   }
 });
 
-// Delete Post (Deletes image only when manually clicking delete)
+// Delete Post
 app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
   try {
     const postId = req.params.id;
     const deletedPost = await Post.findByIdAndDelete(postId);
-
+    
     if (!deletedPost) return res.status(404).send("Post not found.");
-
-    // Delete the associated image from the server only when the post is deleted manually
-    if (deletedPost.image) {
-      const imagePath = path.join(__dirname, "public", deletedPost.image);
-      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
-    }
-
     res.redirect("/admin/panel");
   } catch (error) {
-    console.error("Error deleting post:", error);
+    console.error("❌ Error deleting post:", error);
     res.status(500).send("Error deleting post.");
   }
 });

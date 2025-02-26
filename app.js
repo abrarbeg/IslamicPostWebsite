@@ -15,9 +15,9 @@ const PORT = 3000;
 
 // Cloudinary Configuration
 cloudinary.config({ 
-    cloud_name: process.env.dcklo39gw, 
-    api_key: process.env.545544521589563, 
-    api_secret: process.env.lfiVinmuTDQBZHR7c0-k8Vdxy34 
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
+    api_key: process.env.CLOUDINARY_API_KEY, 
+    api_secret: process.env.CLOUDINARY_API_SECRET 
 });
 
 // MongoDB Connection

@@ -118,7 +118,7 @@ app.get("/admin/edit/:id", authenticateAdmin, async (req, res) => {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).send("Post not found.");
 
-    res.render("edit-post", { post });
+    res.render("edit", { post });
   } catch (error) {
     console.error("Error loading edit page:", error);
     res.status(500).send("Error loading edit page.");

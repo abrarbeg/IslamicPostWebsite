@@ -30,7 +30,7 @@ app.set("views", path.join(__dirname, "views"));
 // Session setup
 app.use(
   session({
-    secret: "your_secret_key",
+    secret: process.env.SESSION_SECRET || "your_secret_key",
     resave: false,
     saveUninitialized: true,
   })
@@ -63,7 +63,7 @@ const uploadToCloudinary = (buffer) => {
   });
 };
 
-// Routes
+// 📌 Home Route - View All Posts
 app.get("/", async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
@@ -74,7 +74,20 @@ app.get("/", async (req, res) => {
   }
 });
 
-// Admin Routes
+// 📌 View Single Post Route
+app.get("/post/:id", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).send("Post not found.");
+    
+    res.render("post", { post }); // Ensure post.ejs exists in views folder
+  } catch (error) {
+    console.error("Error fetching post:", error);
+    res.status(500).send("Error loading post.");
+  }
+});
+
+// 📌 Admin Routes
 app.get("/admin/login", (req, res) => res.render("admin-login", { error: null }));
 
 app.post("/admin/login", (req, res) => {
@@ -87,6 +100,7 @@ app.post("/admin/login", (req, res) => {
   }
 });
 
+// 📌 Admin Panel
 app.get("/admin/panel", authenticateAdmin, async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
@@ -97,7 +111,7 @@ app.get("/admin/panel", authenticateAdmin, async (req, res) => {
   }
 });
 
-// Add New Post
+// 📌 Add New Post
 app.post("/admin/add-post", authenticateAdmin, upload.single("image"), async (req, res) => {
   try {
     const { title, category, content } = req.body;
@@ -112,7 +126,7 @@ app.post("/admin/add-post", authenticateAdmin, upload.single("image"), async (re
   }
 });
 
-// Edit Post (Render Edit Page)
+// 📌 Edit Post (Render Edit Page)
 app.get("/admin/edit/:id", authenticateAdmin, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -125,7 +139,7 @@ app.get("/admin/edit/:id", authenticateAdmin, async (req, res) => {
   }
 });
 
-// Update Post
+// 📌 Update Post
 app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (req, res) => {
   try {
     const { title, category, content } = req.body;
@@ -146,7 +160,7 @@ app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (
   }
 });
 
-// Delete Post
+// 📌 Delete Post
 app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
   try {
     const postId = req.params.id;
@@ -160,7 +174,7 @@ app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
   }
 });
 
-// Logout
+// 📌 Logout
 app.get("/admin/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) console.error(err);

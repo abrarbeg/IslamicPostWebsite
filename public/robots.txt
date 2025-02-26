@@ -1,0 +1,3 @@
+User-agent: *
+Disallow:
+Sitemap: https://islamicpostwebsite.onrender.com/sitemap.xml

@@ -52,6 +52,12 @@ const authenticateAdmin = (req, res, next) => {
   res.redirect("/admin/login");
 };
 
+// Pass Admin Status to All Views
+app.use((req, res, next) => {
+  res.locals.isAdmin = req.session.authenticated || false;
+  next();
+});
+
 // Upload Image to Cloudinary
 const uploadToCloudinary = (buffer) => {
   return new Promise((resolve, reject) => {
@@ -80,7 +86,7 @@ app.get("/post/:id", async (req, res) => {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).send("Post not found.");
     
-    res.render("post", { post }); // Ensure post.ejs exists in views folder
+    res.render("post", { post });
   } catch (error) {
     console.error("Error fetching post:", error);
     res.status(500).send("Error loading post.");

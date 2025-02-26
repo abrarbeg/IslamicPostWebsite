@@ -1,7 +1,28 @@
 <footer class="bg-light text-center py-3">
     <p>&copy; 2024 Islamic Posts. All rights reserved.</p>
+    
+    <!-- SEO Optimization -->
     <p>
-        <a href="/privacy-policy" class="text-decoration-none">Privacy Policy</a> | 
-        <a href="/terms-conditions" class="text-decoration-none">Terms & Conditions</a>
+        <a href="/privacy-policy" class="text-decoration-none" title="Read our Privacy Policy for Islamic Posts">Privacy Policy</a> | 
+        <a href="/terms-conditions" class="text-decoration-none" title="Check our Terms and Conditions for Islamic Posts">Terms & Conditions</a>
     </p>
+
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Islamic Posts",
+        "url": "https://islamicpostwebsite.onrender.com/",
+        "publisher": {
+            "@type": "Organization",
+            "name": "Islamic Posts"
+        },
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://islamicpostwebsite.onrender.com/search?q={search_term}",
+            "query-input": "required name=search_term"
+        }
+    }
+    </script>
 </footer>

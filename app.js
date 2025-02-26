@@ -1,5 +1,3 @@
-require("dotenv").config(); // Load environment variables
-
 const express = require("express");
 const mongoose = require("mongoose");
 const session = require("express-session");
@@ -10,22 +8,18 @@ const Post = require("./models/post");
 const { v2: cloudinary } = require("cloudinary");
 const streamifier = require("streamifier");
 
+env.config(); // Load environment variables
+
+const uri = process.env.MONGODB_URI;
 const app = express();
 const PORT = 3000;
 
-// Cloudinary Configuration
+// Cloudinary configuration
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
     api_key: process.env.CLOUDINARY_API_KEY, 
     api_secret: process.env.CLOUDINARY_API_SECRET 
 });
-
-// MongoDB Connection
-const uri = process.env.MONGODB_URI;
-mongoose
-  .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -33,7 +27,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Session Setup
+// Session setup
 app.use(
   session({
     secret: "your_secret_key",
@@ -42,11 +36,17 @@ app.use(
   })
 );
 
+// MongoDB Connection
+mongoose
+  .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+
 // Multer Setup for Cloudinary Upload
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Middleware to Check if User is Logged In
+// Middleware to check if user is logged in
 const authenticateAdmin = (req, res, next) => {
   if (req.session.authenticated) return next();
   res.redirect("/admin/login");
@@ -55,7 +55,7 @@ const authenticateAdmin = (req, res, next) => {
 // Upload Image to Cloudinary
 const uploadToCloudinary = (buffer) => {
   return new Promise((resolve, reject) => {
-    let stream = cloudinary.uploader.upload_stream({ folder: "posts" }, (error, result) => {
+    let stream = cloudinary.uploader.upload_stream((error, result) => {
       if (error) return reject(error);
       resolve(result.secure_url);
     });
@@ -69,7 +69,7 @@ app.get("/", async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.render("index", { posts });
   } catch (error) {
-    console.error("❌ Error fetching posts:", error);
+    console.error("Error fetching posts:", error);
     res.status(500).send("Could not load posts.");
   }
 });
@@ -92,7 +92,7 @@ app.get("/admin/panel", authenticateAdmin, async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.render("admin-panel", { posts });
   } catch (error) {
-    console.error("❌ Error loading admin panel:", error);
+    console.error("Error loading admin panel:", error);
     res.status(500).send("Error loading admin panel.");
   }
 });
@@ -107,44 +107,8 @@ app.post("/admin/add-post", authenticateAdmin, upload.single("image"), async (re
     await newPost.save();
     res.redirect("/admin/panel");
   } catch (error) {
-    console.error("❌ Error adding post:", error);
+    console.error("Error adding post:", error);
     res.status(500).send("Error adding post.");
-  }
-});
-
-// Edit Post
-app.get("/admin/edit/:id", authenticateAdmin, async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).send("Post not found");
-    res.render("edit", { post });
-  } catch (error) {
-    console.error("❌ Error fetching post for edit:", error);
-    res.status(500).send("Error loading edit page.");
-  }
-});
-
-// Update Post (Preserves existing image if no new image is uploaded)
-app.post("/admin/update/:id", authenticateAdmin, upload.single("image"), async (req, res) => {
-  try {
-    const { title, category, content } = req.body;
-    const postId = req.params.id;
-
-    const existingPost = await Post.findById(postId);
-    if (!existingPost) return res.status(404).send("Post not found.");
-
-    const updatedData = {
-      title,
-      category,
-      content,
-      image: req.file ? await uploadToCloudinary(req.file.buffer) : existingPost.image, // Preserve existing image if no new image is uploaded
-    };
-
-    await Post.findByIdAndUpdate(postId, updatedData, { new: true });
-    res.redirect("/admin/panel");
-  } catch (error) {
-    console.error("❌ Error updating post:", error);
-    res.status(500).send("Error updating post.");
   }
 });
 
@@ -157,7 +121,7 @@ app.post("/admin/delete/:id", authenticateAdmin, async (req, res) => {
     if (!deletedPost) return res.status(404).send("Post not found.");
     res.redirect("/admin/panel");
   } catch (error) {
-    console.error("❌ Error deleting post:", error);
+    console.error("Error deleting post:", error);
     res.status(500).send("Error deleting post.");
   }
 });

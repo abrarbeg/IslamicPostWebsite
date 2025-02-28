@@ -232,5 +232,8 @@ app.use('/robots.txt', (req, res) => {
 // Serve static files (if needed)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve ads.txt at the root URL
+app.use('/ads.txt', express.static(path.join(__dirname, 'ads.txt')));
+
 // Start Server
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
